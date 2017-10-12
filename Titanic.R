@@ -25,7 +25,7 @@ names(train)
 names(test)
 
 # bind train & test datasets
-full  <- bind_rows(train, test) 
+full  <- rbind(train, test) 
 
 # check data
 str(full)
@@ -52,5 +52,28 @@ table(is.na(full$Fare))
 fare.median <- median(full$Fare, na.rm = TRUE)
 full[is.na(full$Fare), "Fare"] <- fare.median
 
-# Now, splitting back the data into train and test after data cleaning and preparation
+# categorical casting
+full$Pclass <- as.factor(full$Pclass)
+full$Sex <- as.factor(full$Sex)
+full$Embarked <- as.factor(full$Embarked)
 
+# Now, splitting back the data into train and test after data cleaning and preparation
+train <- full[full$isTrain == TRUE, ]
+test <- full[full$isTrain == FALSE, ]
+
+# mark Survived back to factor 
+train$Survived <- as.factor(train$Survived)
+
+# Random forest equation
+equation <- "Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked"
+survivedFormula <- as.formula(equation)
+trainModel <- randomForest(formula = survivedFormula, data = train, ntree = 500, mtry = 3, nodesize = 0.01 * nrow(train)) 
+
+featuresEquation <- "Pclass + Sex + Age + SibSp + Parch + Fare + Embarked"
+Survived <- predict(trainModel, newdata = test)
+
+PassengerId <- test$PassengerId
+outputDataFrame <- as.data.frame(PassengerId)
+outputDataFrame$Survived <- Survived
+
+write.csv(outputDataFrame, file = "kaggle_submission.csv", row.names = FALSE)
